@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnşaat Yönetim - Modern Dashboard</title>
+    <meta name="description" content="İnşaat projeleri, bütçe takibi ve ekip yönetimi için modern dashboard arayüzü.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --border-color: #2a2a2a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            width: 150%;
+            height: 150%;
+            top: -25%;
+            left: -25%;
+            background: radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.15), transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.15), transparent 50%);
+            animation: rotate 30s linear infinite;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+            gap: 12px;
+        }
+
+        .menu-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-box { position: relative; margin: 0 24px; }
+        .search-box input {
+            width: 320px;
+            height: 40px;
+            padding: 0 16px 0 44px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .search-box .material-icons-outlined {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 20px;
+        }
+
+        .topbar-actions { display: flex; align-items: center; gap: 8px; }
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            color: var(--text-secondary);
+        }
+        .action-btn:hover,
+        .menu-toggle:hover { background: var(--bg-primary); border-color: var(--accent-primary); transform: translateY(-2px); color: var(--accent-primary); }
+        .notification-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px 6px 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 8px;
+        }
+        .user-menu:hover { border-color: var(--accent-primary); }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 64px);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 16px;
+            overflow-y: auto;
+            transition: transform 0.3s;
+            z-index: 999;
+        }
+        .sidebar-overlay {
+            position: fixed;
+            inset: 64px 0 0 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: auto; }
+
+        .menu-section { margin-bottom: 24px; }
+        .menu-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            color: var(--text-secondary);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 4px;
+        }
+        .menu-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .menu-item.active {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .menu-badge { margin-left: auto; padding: 2px 8px; background: var(--danger); color: white; border-radius: 6px; font-size: 11px; font-weight: 600; }
+
+        .main-content { margin-left: 280px; margin-top: 64px; padding: 32px; position: relative; z-index: 1; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
+        .page-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .page-subtitle { font-size: 14px; color: var(--text-secondary); }
+        .page-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-color); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--accent-primary); }
+        .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-label { color: var(--text-secondary); }
+
+        .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; }
+        .card-title { font-size: 18px; font-weight: 700; }
+        .chart-container { position: relative; height: 320px; }
+        .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+        .table-container { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table thead th { padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+        .table tbody td { padding: 16px 12px; border-bottom: 1px solid var(--border-color); }
+        .table tbody tr:hover { background: var(--bg-tertiary); }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .badge-info { background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); }
+        .progress { height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); }
+
+        .activity-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .activity-title { font-weight: 600; margin-bottom: 4px; }
+        .activity-text, .activity-time { font-size: 13px; color: var(--text-secondary); }
+
+        @media (max-width: 1024px) {
+            .menu-toggle { display: inline-flex; }
+            .sidebar { transform: translateX(-100%); }
+            body.sidebar-open .sidebar { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .search-box, .user-info { display: none; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .main-content { padding: 20px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+<div class="bg-gradient" aria-hidden="true"></div>
+<header class="topbar">
+    <button class="menu-toggle" id="menuToggle" aria-label="Menüyü aç/kapat" aria-controls="sidebar" aria-expanded="false">
+        <span class="material-icons-outlined">menu</span>
+    </button>
+    <div class="logo-section">
+        <div class="logo-icon">İY</div>
+        <div class="logo-text">İnşaat Yönetim</div>
+    </div>
+    <div class="search-box">
+        <span class="material-icons-outlined">search</span>
+        <label class="visually-hidden" for="dashboard-search">Arama</label>
+        <input id="dashboard-search" type="text" placeholder="Projeler, malzemeler, faturalar...">
+    </div>
+    <div class="topbar-actions">
+        <button class="action-btn" id="themeToggle" aria-label="Temayı değiştir">
+            <span class="material-icons-outlined" id="themeIcon">dark_mode</span>
+        </button>
+        <button class="action-btn" aria-label="Uygulamalar"><span class="material-icons-outlined">apps</span></button>
+        <button class="action-btn" aria-label="Bildirimler"><span class="material-icons-outlined">notifications</span><span class="notification-badge"></span></button>
+        <div class="user-menu" role="button" tabindex="0" aria-label="Kullanıcı menüsü">
+            <div class="user-avatar">AK</div>
+            <div class="user-info"><div>Admin User</div><small>Yönetici</small></div>
+        </div>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="menu-section">
+        <div class="menu-label">Ana Menü</div>
+        <div class="menu-item active"><span class="material-icons-outlined">dashboard</span><span>Dashboard</span></div>
+        <div class="menu-item"><span class="material-icons-outlined">analytics</span><span>Analizler</span></div>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Proje yönetimi ve gerçek zamanlı analitik</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-secondary"><span class="material-icons-outlined">download</span>Rapor İndir</button>
+            <button class="btn btn-primary"><span class="material-icons-outlined">add</span>Yeni Proje</button>
+        </div>
+    </div>
+
+    <section class="stats-grid" aria-label="Özet metrikler">
+        <div class="stat-card"><div class="stat-value">24</div><div class="stat-label">Aktif Projeler</div></div>
+        <div class="stat-card"><div class="stat-value">18.5M ₺</div><div class="stat-label">Toplam Bütçe</div></div>
+        <div class="stat-card"><div class="stat-value">8.1M ₺</div><div class="stat-label">Harcanan</div></div>
+        <div class="stat-card"><div class="stat-value">156</div><div class="stat-label">Çalışanlar</div></div>
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <div class="card-header">
+                <h3 class="card-title">Proje Bütçe Analizi</h3>
+                <select class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">
+                    <option>2024</option><option>2023</option>
+                </select>
+            </div>
+            <div class="chart-container"><canvas id="mainChart" aria-label="Bütçe grafiği" role="img"></canvas></div>
+        </section>
+
+        <section class="card">
+            <div class="card-header"><h3 class="card-title">Son Aktiviteler</h3></div>
+            <div class="activity-item"><div class="activity-icon"><span class="material-icons-outlined">shopping_cart</span></div><div><div class="activity-title">Çimento Alımı</div><div class="activity-text">Residence Tower A - 42,500 ₺</div><div class="activity-time">2 saat önce</div></div></div>
+            <div class="activity-item"><div class="activity-icon"><span class="material-icons-outlined">check_circle</span></div><div><div class="activity-title">Proje Tamamlandı</div><div class="activity-text">Ofis Renovasyonu başarıyla tamamlandı</div><div class="activity-time">5 saat önce</div></div></div>
+        </section>
+    </div>
+</main>
+
+<script>
+    const body = document.body;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function getCssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function applyTheme(theme) {
+        body.setAttribute('data-theme', theme);
+        themeIcon.textContent = theme === 'dark' ? 'dark_mode' : 'light_mode';
+        localStorage.setItem('theme', theme);
+        if (window.dashboardChart) {
+            window.dashboardChart.options.plugins.legend.labels.color = getCssVar('--text-secondary');
+            window.dashboardChart.options.scales.y.grid.color = getCssVar('--border-color');
+            window.dashboardChart.options.scales.y.ticks.color = getCssVar('--text-secondary');
+            window.dashboardChart.options.scales.x.ticks.color = getCssVar('--text-secondary');
+            window.dashboardChart.update();
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = body.getAttribute('data-theme');
+        applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+    }
+
+    function toggleSidebar(forceClose = false) {
+        const shouldOpen = forceClose ? false : !body.classList.contains('sidebar-open');
+        body.classList.toggle('sidebar-open', shouldOpen);
+        menuToggle.setAttribute('aria-expanded', String(shouldOpen));
+    }
+
+    themeToggle.addEventListener('click', toggleTheme);
+    menuToggle.addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(true));
+
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    const gradient1 = ctx.createLinearGradient(0, 0, 0, 320);
+    gradient1.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+    gradient1.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+    const gradient2 = ctx.createLinearGradient(0, 0, 0, 320);
+    gradient2.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+    gradient2.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    window.dashboardChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu'],
+            datasets: [
+                { label: 'Bütçe', data: [5.5, 8.3, 9.1, 11.5, 13.2, 15.8, 17.1, 18.5], borderColor: '#3b82f6', backgroundColor: gradient1, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4 },
+                { label: 'Harcanan', data: [1.2, 2.1, 3.5, 4.8, 5.9, 6.8, 7.5, 8.1], borderColor: '#10b981', backgroundColor: gradient2, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { size: 13, family: 'Inter', weight: '500' },
+                        usePointStyle: true,
+                        padding: 20,
+                        color: getCssVar('--text-secondary')
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: getCssVar('--border-color') },
+                    ticks: { color: getCssVar('--text-secondary'), callback: (value) => `${value}M ₺` }
+                },
+                x: { grid: { display: false }, ticks: { color: getCssVar('--text-secondary') } }
+            }
+        }
+    });
+</script>
+</body>
+</html>
